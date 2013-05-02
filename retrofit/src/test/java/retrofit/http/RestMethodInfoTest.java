@@ -20,6 +20,7 @@ import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 
 public class RestMethodInfoTest {
   @Test public void pathParameterParsing() throws Exception {
+    expectParams("");
     expectParams("/");
     expectParams("/foo");
     expectParams("foo/bar");
@@ -43,7 +44,7 @@ public class RestMethodInfoTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void pathMustBePrefixedWithSlash() {
+  public void pathMustBePrefixedWithSlashOrNull() {
     class Example {
       @GET("foo/bar") Response a() {
         return null;
@@ -53,6 +54,20 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+  }
+
+
+  @Test public void pathCanBeNull() {
+      class Example {
+          @GET("") Response a() {
+              return null;
+          }
+      }
+
+      Method method = TestingUtils.getMethod(Example.class, "a");
+      RestMethodInfo methodInfo = new RestMethodInfo(method);
+      methodInfo.init();
+      assertThat(methodInfo.path).isEqualTo("");
   }
 
   @Test public void concreteCallbackTypes() {
