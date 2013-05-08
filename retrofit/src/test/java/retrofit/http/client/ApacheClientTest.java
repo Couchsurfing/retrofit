@@ -29,7 +29,7 @@ public class ApacheClientTest {
   private static final String HOST = "http://example.com";
 
   @Test public void get() {
-    Request request = new Request("GET", HOST + "/foo/bar/?kit=kat", null, null);
+    Request request = new Request("GET", HOST + "/foo/bar/?kit=kat", null, null, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("GET");
@@ -44,7 +44,7 @@ public class ApacheClientTest {
 
   @Test public void post() throws Exception {
     TypedString body = new TypedString("hi");
-    Request request = new Request("POST", HOST + "/foo/bar/", null, body);
+    Request request = new Request("POST", HOST + "/foo/bar/", null, body, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("POST");
@@ -64,7 +64,7 @@ public class ApacheClientTest {
     bodyParams.put("foo", new TypedString("bar"));
     bodyParams.put("ping", new TypedString("pong"));
     TypedOutput body = TestingUtils.createMultipart(bodyParams);
-    Request request = new Request("POST", HOST + "/that/", null, body);
+    Request request = new Request("POST", HOST + "/that/", null, body, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("POST");
@@ -82,7 +82,7 @@ public class ApacheClientTest {
     List<Header> headers = new ArrayList<Header>();
     headers.add(new Header("kit", "kat"));
     headers.add(new Header("foo", "bar"));
-    Request request = new Request("GET", HOST + "/this/", headers, null);
+    Request request = new Request("GET", HOST + "/this/", headers, null, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getAllHeaders()).hasSize(2);

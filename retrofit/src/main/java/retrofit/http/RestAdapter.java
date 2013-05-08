@@ -275,7 +275,8 @@ public class RestAdapter {
     log.log(String.format("---> END HTTP (%s-byte body)", bodySize));
 
     // Since we consumed the original request, return a new, identical one from its bytes.
-    return new Request(request.getMethod(), request.getUrl(), request.getHeaders(), body);
+    return new Request(request.getMethod(), request.getUrl(),
+            request.getHeaders(), body, request.getCachePolicy());
   }
 
   /** Log response headers and body. Consumes response body and returns identical replacement. */

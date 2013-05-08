@@ -15,6 +15,7 @@ import retrofit.http.mime.TypedOutput;
 /** Cached details about an interface method. */
 final class RestMethodInfo {
   static final int NO_SINGLE_ENTITY = -1;
+  static final int NO_CACHE_CONTROL = -1;
   private static final Pattern PATH_PARAMETERS = Pattern.compile("\\{([a-z_-]+)\\}");
 
   final Method method;
@@ -29,6 +30,7 @@ final class RestMethodInfo {
   QueryParam[] pathQueryParams;
   String[] namedParams;
   int singleEntityArgumentIndex = NO_SINGLE_ENTITY;
+  int scacheControlArgumentIndex = NO_CACHE_CONTROL;
   boolean isMultipart = false;
 
   RestMethodInfo(Method method) {
@@ -168,8 +170,9 @@ final class RestMethodInfo {
   }
 
   /**
-   * Loads {@link #namedParams}, {@link #singleEntityArgumentIndex}. Must be called after
-   * {@link #parseMethodAnnotations()}}.
+   * Loads {@link #namedParams}, {@link #singleEntityArgumentIndex},
+   * {@link #scacheControlArgumentIndex}.
+   * Must be called after {@link #parseMethodAnnotations()}}.
    */
   private void parseParameters() {
     Class<?>[] parameterTypes = method.getParameterTypes();
@@ -208,6 +211,12 @@ final class RestMethodInfo {
                 "Method annotated with multiple SingleEntity method annotations: " + method);
           }
           singleEntityArgumentIndex = i;
+        } else if (annotationType == CacheControl.class) {
+          if (scacheControlArgumentIndex != NO_CACHE_CONTROL) {
+              throw new IllegalStateException(
+                      "Method annotated with multiple CacheControl method annotations: " + method);
+          }
+          scacheControlArgumentIndex = i;
         } else {
           throw new IllegalStateException(
               "Argument " + i + " has invalid annotation " + annotationType + ": " + method);

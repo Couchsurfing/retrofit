@@ -11,6 +11,7 @@ import retrofit.http.client.Request;
 import retrofit.http.mime.TypedOutput;
 import retrofit.http.mime.TypedString;
 
+import static retrofit.http.RestMethodInfo.NO_CACHE_CONTROL;
 import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 
 /**
@@ -150,7 +151,19 @@ final class RequestBuilder {
       }
     }
 
-    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body);
+    CachePolicy cachePolicy = null;
+    if (methodInfo.scacheControlArgumentIndex != NO_CACHE_CONTROL) {
+      Object cachePolicyObj = args[methodInfo.scacheControlArgumentIndex];
+      if (!(cachePolicy instanceof CachePolicy)) {
+          throw new IllegalStateException(
+                  "CacheControl param should be instance of CachePolicy.");
+      }
+      cachePolicy = (CachePolicy) cachePolicyObj;
+    } else {
+      cachePolicy = CachePolicy.createDefaultPolicy();
+    }
+
+    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body, cachePolicy);
   }
 
   private static String getUrlEncodedValue(Parameter found) {

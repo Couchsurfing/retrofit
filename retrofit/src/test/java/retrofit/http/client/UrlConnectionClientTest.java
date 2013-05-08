@@ -28,7 +28,7 @@ public class UrlConnectionClientTest {
   };
 
   @Test public void get() throws Exception {
-    Request request = new Request("GET", HOST + "/foo/bar/?kit=kat", null, null);
+    Request request = new Request("GET", HOST + "/foo/bar/?kit=kat", null, null, null);
 
     HttpURLConnection connection = client.openConnection(request);
     client.prepareRequest(connection, request);
@@ -40,7 +40,7 @@ public class UrlConnectionClientTest {
 
   @Test public void post() throws Exception {
     TypedString body = new TypedString("hi");
-    Request request = new Request("POST", HOST + "/foo/bar/", null, body);
+    Request request = new Request("POST", HOST + "/foo/bar/", null, body, null);
 
     DummyHttpUrlConnection connection = (DummyHttpUrlConnection) client.openConnection(request);
     client.prepareRequest(connection, request);
@@ -59,7 +59,7 @@ public class UrlConnectionClientTest {
     bodyParams.put("foo", new TypedString("bar"));
     bodyParams.put("ping", new TypedString("pong"));
     TypedOutput body = TestingUtils.createMultipart(bodyParams);
-    Request request = new Request("POST", HOST + "/that/", null, body);
+    Request request = new Request("POST", HOST + "/that/", null, body, null);
 
     DummyHttpUrlConnection connection = (DummyHttpUrlConnection) client.openConnection(request);
     client.prepareRequest(connection, request);
@@ -78,7 +78,7 @@ public class UrlConnectionClientTest {
     List<Header> headers = new ArrayList<Header>();
     headers.add(new Header("kit", "kat"));
     headers.add(new Header("foo", "bar"));
-    Request request = new Request("GET", HOST + "/this/", headers, null);
+    Request request = new Request("GET", HOST + "/this/", headers, null, null);
 
     HttpURLConnection connection = client.openConnection(request);
     client.prepareRequest(connection, request);
