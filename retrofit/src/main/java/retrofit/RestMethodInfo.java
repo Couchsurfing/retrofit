@@ -377,7 +377,8 @@ final class RestMethodInfo {
           } else if (annotationType == BaseUrl.class) {
               if (baseUrlIndex != NO_BASE_URL) {
                   throw new IllegalStateException(
-                          "Method annotated with multiple BaseEntity method annotations: " + method);
+                          "Method annotated with multiple BaseEntity method annotations: "
+                                  + method);
               }
               if (parameterType != String.class) {
                   throw new IllegalStateException("BaseUrl should be of the Type String.");

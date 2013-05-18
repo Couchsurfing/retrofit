@@ -777,7 +777,7 @@ public class RestMethodInfoTest {
     assertThat(methodInfo.bodyIndex).isEqualTo(NO_BODY);
     assertThat(methodInfo.baseUrlIndex).isNotEqualTo(NO_BASE_URL);
     assertThat(methodInfo.baseUrlIndex).isEqualTo(0);
-    assertThat(methodInfo.requestMultipartPart).isNull();
+    assertThat(methodInfo.requestMultipartPart).containsNull();
   }
 
   @Test(expected = IllegalStateException.class)

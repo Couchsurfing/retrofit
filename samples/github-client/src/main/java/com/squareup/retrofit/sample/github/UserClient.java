@@ -1,11 +1,11 @@
 // Copyright 2012 Square, Inc.
 package com.squareup.retrofit.sample.github;
 
+import retrofit.RestAdapter;
+import retrofit.client.Response;
 import retrofit.http.BaseUrl;
 import retrofit.http.GET;
-import retrofit.http.Name;
-import retrofit.http.RestAdapter;
-import retrofit.http.client.Response;
+import retrofit.http.Path;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -26,7 +26,7 @@ public class UserClient {
 
     @GET("/users/{user}")
     User getUser(
-        @Name("user") String user
+        @Path("user") String user
     );
 
     @GET("/")
