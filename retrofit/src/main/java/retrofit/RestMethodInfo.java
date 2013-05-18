@@ -175,7 +175,7 @@ final class RestMethodInfo {
 
   /** Loads {@link #requestUrl}, {@link #requestUrlParamNames}, and {@link #requestQuery}. */
   private void parsePath(String path) {
-    if (path == null || (path.length() > 0 && path.charAt(0) != '/')) {
+    if (path == null || (path.length() > 0 && path.charAt(0) != '/' && path.charAt(0) != '?')) {
       throw new IllegalArgumentException("URL path \""
           + path
           + "\" on method "
