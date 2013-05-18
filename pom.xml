@@ -14,9 +14,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -27,7 +25,7 @@
 
   <groupId>com.couchsurfing.retrofit</groupId>
   <artifactId>parent</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.1</version>
   <packaging>pom</packaging>
 
   <name>Retrofit (Parent)</name>
@@ -50,8 +48,9 @@
     <!-- Dependencies -->
     <android.version>4.1.1.4</android.version>
     <android.platform>16</android.platform>
-    <gson.version>2.2.2</gson.version>
+    <gson.version>2.2.3</gson.version>
     <javax.inject.version>1</javax.inject.version>
+    <okhttp.version>1.0.1</okhttp.version>
 
     <!-- Test Dependencies -->
     <junit.version>4.10</junit.version>
@@ -65,21 +64,6 @@
     <connection>scm:git:git://github.com/Couchsurfing/retrofit.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/Couchsurfing/retrofit.git</developerConnection>
   </scm>
-
-  <!-- Bring in Maven Central Snapshots for Gson 2.2.3-SNAPSHOT -->
-  <repositories>
-    <repository>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype Nexus Snapshots</name>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <issueManagement>
     <system>GitHub Issues</system>
@@ -104,6 +88,11 @@
         <groupId>com.google.android</groupId>
         <artifactId>android</artifactId>
         <version>${android.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${okhttp.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.gson</groupId>
