@@ -4,13 +4,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.couchsurfing.retrofit</groupId>
-    <artifactId>samples</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <groupId>com.couchsurfing.retrofit.samples</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.1.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>sample-github-client</artifactId>
+  <artifactId>github-client</artifactId>
   <name>Sample: GitHub Client</name>
 
   <dependencies>
