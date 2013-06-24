@@ -31,7 +31,11 @@ import retrofit.mime.TypedOutput;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.fest.assertions.api.Assertions.assertThat;
-import static retrofit.RestMethodInfo.NO_BODY;
+import static org.junit.Assert.fail;
+import static retrofit.RestMethodInfo.ParamUsage.BODY;
+import static retrofit.RestMethodInfo.ParamUsage.HEADER;
+import static retrofit.RestMethodInfo.ParamUsage.PATH;
+import static retrofit.RestMethodInfo.ParamUsage.QUERY;
 import static retrofit.RestMethodInfo.RequestType.MULTIPART;
 import static retrofit.RestMethodInfo.RequestType.SIMPLE;
 
@@ -39,18 +43,20 @@ public class RestMethodInfoTest {
   @Test public void pathParameterParsing() throws Exception {
     expectParams("/");
     expectParams("/foo");
-    expectParams("foo/bar");
-    expectParams("foo/bar/{}");
-    expectParams("foo/bar/{taco}", "taco");
-    expectParams("foo/bar/{t}", "t");
-    expectParams("foo/bar/{!!!}/"); // Invalid parameter.
-    expectParams("foo/bar/{}/{taco}", "taco");
-    expectParams("foo/bar/{taco}/or/{burrito}", "taco", "burrito");
-    expectParams("foo/bar/{taco}/or/{taco}", "taco");
-    expectParams("foo/bar/{taco-shell}", "taco-shell");
-    expectParams("foo/bar/{taco_shell}", "taco_shell");
-    expectParams("foo/bar/{sha256}", "sha256");
-    expectParams("foo/bar/{1}"); // Invalid parameter, name cannot start with digit.
+    expectParams("/foo/bar");
+    expectParams("/foo/bar/{}");
+    expectParams("/foo/bar/{taco}", "taco");
+    expectParams("/foo/bar/{t}", "t");
+    expectParams("/foo/bar/{!!!}/"); // Invalid parameter.
+    expectParams("/foo/bar/{}/{taco}", "taco");
+    expectParams("/foo/bar/{taco}/or/{burrito}", "taco", "burrito");
+    expectParams("/foo/bar/{taco}/or/{taco}", "taco");
+    expectParams("/foo/bar/{taco-shell}", "taco-shell");
+    expectParams("/foo/bar/{taco_shell}", "taco_shell");
+    expectParams("/foo/bar/{sha256}", "sha256");
+    expectParams("/foo/bar/{TACO}", "TACO");
+    expectParams("/foo/bar/{taco}/{tAco}/{taCo}", "taco", "tAco", "taCo");
+    expectParams("/foo/bar/{1}"); // Invalid parameter, name cannot start with digit.
   }
 
   private static void expectParams(String path, String... expected) {
@@ -353,7 +359,7 @@ public class RestMethodInfoTest {
     assertThat(methodInfo.requestUrl).isEqualTo("/foo");
   }
 
-  @Test public void singleQueryParam() {
+  @Test public void singlePathQueryParam() {
     class Example {
       @GET("/foo?a=b")
       Response a() {
@@ -380,15 +386,12 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestUrlParam).isEmpty();
-    assertThat(methodInfo.requestQueryName).isEmpty();
-    assertThat(methodInfo.requestFormFields).isEmpty();
-    assertThat(methodInfo.requestMultipartPart).isEmpty();
-    assertThat(methodInfo.bodyIndex).isEqualTo(NO_BODY);
+    assertThat(methodInfo.requestParamNames).isEmpty();
+    assertThat(methodInfo.requestParamUsage).isEmpty();
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
-  @Test public void singleParam() {
+  @Test public void singleQueryParam() {
     class Example {
       @GET("/") Response a(@Query("a") String a) {
         return null;
@@ -399,12 +402,12 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestQueryName).hasSize(1).containsSequence("a");
-    assertThat(methodInfo.bodyIndex).isEqualTo(NO_BODY);
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly("a");
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(QUERY);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
-  @Test public void multipleParams() {
+  @Test public void multipleQueryParams() {
     class Example {
       @GET("/") Response a(@Query("a") String a, @Query("b") String b, @Query("c") String c) {
         return null;
@@ -415,8 +418,8 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestQueryName).hasSize(3).containsSequence("a", "b", "c");
-    assertThat(methodInfo.bodyIndex).isEqualTo(NO_BODY);
+    assertThat(methodInfo.requestParamNames).hasSize(3).containsExactly("a", "b", "c");
+    assertThat(methodInfo.requestParamUsage).hasSize(3).containsExactly(QUERY, QUERY, QUERY);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
@@ -431,11 +434,8 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestUrlParam).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestQueryName).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestFormFields).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestMultipartPart).containsOnly(new String[] { null });
-    assertThat(methodInfo.bodyIndex).isEqualTo(0);
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly(new String[] { null });
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(BODY);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
@@ -450,11 +450,8 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestUrlParam).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestQueryName).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestFormFields).containsOnly(new String[] { null });
-    assertThat(methodInfo.requestMultipartPart).containsOnly(new String[] { null });
-    assertThat(methodInfo.bodyIndex).isEqualTo(0);
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly(new String[] { null });
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(BODY);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
@@ -481,11 +478,8 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(methodInfo.requestUrlParam).containsExactly("a", null, "c");
-    assertThat(methodInfo.requestQueryName).containsExactly(null, null, null);
-    assertThat(methodInfo.requestFormFields).containsExactly(null, null, null);
-    assertThat(methodInfo.requestMultipartPart).containsExactly(null, null, null);
-    assertThat(methodInfo.bodyIndex).isEqualTo(1);
+    assertThat(methodInfo.requestParamNames).containsExactly("a", null, "c");
+    assertThat(methodInfo.requestParamUsage).containsExactly(PATH, BODY, PATH);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
@@ -709,8 +703,8 @@ public class RestMethodInfoTest {
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
 
-    assertThat(Arrays.asList(methodInfo.requestParamHeader))
-      .isEqualTo(Arrays.asList("a", "b"));
+    assertThat(methodInfo.requestParamNames).containsExactly("a", "b");
+    assertThat(methodInfo.requestParamUsage).containsExactly(HEADER, HEADER);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -741,6 +735,23 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+  }
+
+  @Test public void invalidPathParam() throws Exception {
+    class Example {
+      @GET("/") Response a(@Path("hey!") String thing) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    try {
+      methodInfo.init();
+      fail();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage()).startsWith("Path parameter name is not valid: hey!.");
+    }
   }
 
   private static class Response {

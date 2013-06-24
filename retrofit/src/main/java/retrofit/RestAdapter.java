@@ -18,7 +18,6 @@ package retrofit;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -118,22 +117,24 @@ public class RestAdapter {
   private final Client.Provider clientProvider;
   private final Executor httpExecutor;
   private final Executor callbackExecutor;
-  private final RequestHeaders requestHeaders;
+  private final RequestInterceptor requestInterceptor;
   private final Converter converter;
   private final Profiler profiler;
+  private final ErrorHandler errorHandler;
   private final Log log;
   private volatile boolean debug;
 
   private RestAdapter(Server server, Client.Provider clientProvider, Executor httpExecutor,
-      Executor callbackExecutor, RequestHeaders requestHeaders, Converter converter,
-      Profiler profiler, Log log, boolean debug) {
+      Executor callbackExecutor, RequestInterceptor requestInterceptor, Converter converter,
+      Profiler profiler, ErrorHandler errorHandler, Log log, boolean debug) {
     this.server = server;
     this.clientProvider = clientProvider;
     this.httpExecutor = httpExecutor;
     this.callbackExecutor = callbackExecutor;
-    this.requestHeaders = requestHeaders;
+    this.requestInterceptor = requestInterceptor;
     this.converter = converter;
     this.profiler = profiler;
+    this.errorHandler = errorHandler;
     this.log = log;
     this.debug = debug;
   }
@@ -159,7 +160,7 @@ public class RestAdapter {
 
     @SuppressWarnings("unchecked") //
     @Override public Object invoke(Object proxy, Method method, final Object[] args)
-        throws InvocationTargetException, IllegalAccessException {
+        throws Throwable {
       // If the method is a method from Object then defer to normal invocation.
       if (method.getDeclaringClass() == Object.class) {
         return method.invoke(this, args);
@@ -177,7 +178,16 @@ public class RestAdapter {
       }
 
       if (methodDetails.isSynchronous) {
-        return invokeRequest(methodDetails, args);
+        try {
+          return invokeRequest(methodDetails, args);
+        } catch (RetrofitError error) {
+          Throwable newError = errorHandler.handleError(error);
+          if (newError == null) {
+            throw new IllegalStateException("Error handler returned null for wrapped exception.",
+                error);
+          }
+          throw newError;
+        }
       }
 
       if (httpExecutor == null || callbackExecutor == null) {
@@ -204,12 +214,13 @@ public class RestAdapter {
       String serverUrl = server.getUrl();
       String url = serverUrl; // Keep some url in case RequestBuilder throws an exception.
       try {
-        Request request = new RequestBuilder(converter) //
-            .apiUrl(serverUrl) //
-            .args(args) //
-            .headers(requestHeaders.get()) //
-            .methodInfo(methodDetails) //
-            .build();
+        RequestBuilder requestBuilder = new RequestBuilder(converter, methodDetails);
+        requestBuilder.setApiUrl(serverUrl);
+        requestBuilder.setArguments(args);
+
+        requestInterceptor.intercept(requestBuilder);
+
+        Request request = requestBuilder.build();
         url = request.getUrl();
 
         if (!methodDetails.isSynchronous) {
@@ -398,28 +409,35 @@ public class RestAdapter {
     private Client.Provider clientProvider;
     private Executor httpExecutor;
     private Executor callbackExecutor;
-    private RequestHeaders requestHeaders;
+    private RequestInterceptor requestInterceptor;
     private Converter converter;
     private Profiler profiler;
+    private ErrorHandler errorHandler;
     private Log log;
     private boolean debug;
 
     /** API server base URL. */
     public Builder setServer(String endpoint) {
-      if (endpoint == null) throw new NullPointerException("endpoint");
+      if (endpoint == null || endpoint.trim().length() == 0) {
+        throw new NullPointerException("Server may not be blank.");
+      }
       return setServer(new Server(endpoint));
     }
 
     /** API server. */
     public Builder setServer(Server server) {
-      if (server == null) throw new NullPointerException("server");
+      if (server == null) {
+        throw new NullPointerException("Server may not be null.");
+      }
       this.server = server;
       return this;
     }
 
     /** The HTTP client used for requests. */
     public Builder setClient(final Client client) {
-      if (client == null) throw new NullPointerException("client");
+      if (client == null) {
+        throw new NullPointerException("Client may not be null.");
+      }
       return setClient(new Client.Provider() {
         @Override public Client get() {
           return client;
@@ -429,7 +447,9 @@ public class RestAdapter {
 
     /** The HTTP client used for requests. */
     public Builder setClient(Client.Provider clientProvider) {
-      if (clientProvider == null) throw new NullPointerException("clientProvider");
+      if (clientProvider == null) {
+        throw new NullPointerException("Client provider may not be null.");
+      }
       this.clientProvider = clientProvider;
       return this;
     }
@@ -443,37 +463,61 @@ public class RestAdapter {
      * HTTP client.
      */
     public Builder setExecutors(Executor httpExecutor, Executor callbackExecutor) {
-      if (httpExecutor == null) throw new NullPointerException("httpExecutor");
-      if (callbackExecutor == null) callbackExecutor = new Utils.SynchronousExecutor();
+      if (httpExecutor == null) {
+        throw new NullPointerException("HTTP executor may not be null.");
+      }
+      if (callbackExecutor == null) {
+        callbackExecutor = new Utils.SynchronousExecutor();
+      }
       this.httpExecutor = httpExecutor;
       this.callbackExecutor = callbackExecutor;
       return this;
     }
 
-    /**  */
-    public Builder setRequestHeaders(RequestHeaders requestHeaders) {
-      if (requestHeaders == null) throw new NullPointerException("requestHeaders");
-      this.requestHeaders = requestHeaders;
+    /** A request interceptor for adding data to every request. */
+    public Builder setRequestInterceptor(RequestInterceptor requestInterceptor) {
+      if (requestInterceptor == null) {
+        throw new NullPointerException("Request interceptor may not be null.");
+      }
+      this.requestInterceptor = requestInterceptor;
       return this;
     }
 
     /** The converter used for serialization and deserialization of objects. */
     public Builder setConverter(Converter converter) {
-      if (converter == null) throw new NullPointerException("converter");
+      if (converter == null) {
+        throw new NullPointerException("Converter may not be null.");
+      }
       this.converter = converter;
       return this;
     }
 
     /** Set the profiler used to measure requests. */
     public Builder setProfiler(Profiler profiler) {
-      if (profiler == null) throw new NullPointerException("profiler");
+      if (profiler == null) {
+        throw new NullPointerException("Profiler may not be null.");
+      }
       this.profiler = profiler;
+      return this;
+    }
+
+    /**
+     * The error handler allows you to customize the type of exception thrown for errors on
+     * synchronous requests.
+     */
+    public Builder setErrorHandler(ErrorHandler errorHandler) {
+      if (errorHandler == null) {
+        throw new NullPointerException("Error handler may not be null.");
+      }
+      this.errorHandler = errorHandler;
       return this;
     }
 
     /** Configure debug logging mechanism. */
     public Builder setLog(Log log) {
-      if (log == null) throw new NullPointerException("log");
+      if (log == null) {
+        throw new NullPointerException("Log may not be null.");
+      }
       this.log = log;
       return this;
     }
@@ -490,8 +534,8 @@ public class RestAdapter {
         throw new IllegalArgumentException("Server may not be null.");
       }
       ensureSaneDefaults();
-      return new RestAdapter(server, clientProvider, httpExecutor, callbackExecutor, requestHeaders,
-          converter, profiler, log, debug);
+      return new RestAdapter(server, clientProvider, httpExecutor, callbackExecutor,
+          requestInterceptor, converter, profiler, errorHandler, log, debug);
     }
 
     private void ensureSaneDefaults() {
@@ -507,11 +551,14 @@ public class RestAdapter {
       if (callbackExecutor == null) {
         callbackExecutor = Platform.get().defaultCallbackExecutor();
       }
+      if (errorHandler == null) {
+        errorHandler = ErrorHandler.DEFAULT;
+      }
       if (log == null) {
         log = Platform.get().defaultLog();
       }
-      if (requestHeaders == null) {
-        requestHeaders = RequestHeaders.NONE;
+      if (requestInterceptor == null) {
+        requestInterceptor = RequestInterceptor.NONE;
       }
     }
   }
