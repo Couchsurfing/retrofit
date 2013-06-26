@@ -51,6 +51,10 @@ final class RequestBuilder implements RequestInterceptor.RequestFacade {
     isSynchronous = methodInfo.isSynchronous;
 
     headers = new ArrayList<Header>();
+    if (methodInfo.headers != null) {
+      headers.addAll(methodInfo.headers);
+    }
+
     queryParams = new StringBuilder();
 
     relativeUrl = methodInfo.requestUrl;
@@ -163,14 +167,12 @@ final class RequestBuilder implements RequestInterceptor.RequestFacade {
           }
           break;
         case PART:
-          if (value == null) {
-            throw new IllegalArgumentException(
-                "Multipart part \"" + name + "\" value must not be null.");
-          }
-          if (value instanceof TypedOutput) {
-            multipartBody.addPart(name, (TypedOutput) value);
-          } else {
-            multipartBody.addPart(name, converter.toBody(value));
+          if (value != null) { // Skip null values.
+            if (value instanceof TypedOutput) {
+              multipartBody.addPart(name, (TypedOutput) value);
+            } else {
+              multipartBody.addPart(name, converter.toBody(value));
+            }
           }
           break;
         case BODY:
@@ -209,6 +211,10 @@ final class RequestBuilder implements RequestInterceptor.RequestFacade {
     StringBuilder queryParams = this.queryParams;
     if (queryParams.length() > 0) {
       url.append(queryParams);
+    }
+
+    if (multipartBody != null && multipartBody.getPartCount() == 0) {
+      throw new IllegalStateException("Multipart requests must contain at least one part.");
     }
 
     return new Request(requestMethod, url.toString(), headers, body);
