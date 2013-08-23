@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 
 import retrofit.http.BaseUrl;
 import retrofit.http.Body;
+import retrofit.http.EncodedPath;
+import retrofit.http.EncodedQuery;
 import retrofit.http.Field;
 import retrofit.http.FormUrlEncoded;
 import retrofit.http.Header;
@@ -49,7 +51,7 @@ final class RestMethodInfo {
 
 
   enum ParamUsage {
-    PATH, QUERY, FIELD, PART, BODY, HEADER, BASEURL;
+    PATH, ENCODED_PATH, QUERY, ENCODED_QUERY, FIELD, PART, BODY, HEADER, BASEURL;
   }
 
   enum RequestType {
@@ -315,26 +317,26 @@ final class RestMethodInfo {
 
           if (annotationType == Path.class) {
             String name = ((Path) parameterAnnotation).value();
-
-            if (!PARAM_NAME_REGEX.matcher(name).matches()) {
-              throw new IllegalStateException("Path parameter name is not valid: "
-                  + name
-                  + ". Must match "
-                  + PARAM_URL_REGEX.pattern());
-            }
-            // Verify URL replacement name is actually present in the URL path.
-            if (!requestUrlParamNames.contains(name)) {
-              throw new IllegalStateException(
-                  "Method URL \"" + requestUrl + "\" does not contain {" + name + "}.");
-            }
+            validatePathName(name);
 
             paramNames[i] = name;
             paramUsage[i] = ParamUsage.PATH;
+          } else if (annotationType == EncodedPath.class) {
+            String name = ((EncodedPath) parameterAnnotation).value();
+            validatePathName(name);
+
+            paramNames[i] = name;
+            paramUsage[i] = ParamUsage.ENCODED_PATH;
           } else if (annotationType == Query.class) {
             String name = ((Query) parameterAnnotation).value();
 
             paramNames[i] = name;
             paramUsage[i] = ParamUsage.QUERY;
+          } else if (annotationType == EncodedQuery.class) {
+            String name = ((EncodedQuery) parameterAnnotation).value();
+
+            paramNames[i] = name;
+            paramUsage[i] = ParamUsage.ENCODED_QUERY;
           } else if (annotationType == Header.class) {
             String name = ((Header) parameterAnnotation).value();
             if (parameterType != String.class) {
@@ -405,6 +407,20 @@ final class RestMethodInfo {
     }
     if (requestType == RequestType.MULTIPART && !gotPart) {
       throw new IllegalStateException("Multipart method must contain at least one @Part.");
+    }
+  }
+
+  private void validatePathName(String name) {
+    if (!PARAM_NAME_REGEX.matcher(name).matches()) {
+      throw new IllegalStateException("Path parameter name is not valid: "
+          + name
+          + ". Must match "
+          + PARAM_URL_REGEX.pattern());
+    }
+    // Verify URL replacement name is actually present in the URL path.
+    if (!requestUrlParamNames.contains(name)) {
+      throw new IllegalStateException(
+          "Method URL \"" + requestUrl + "\" does not contain {" + name + "}.");
     }
   }
 

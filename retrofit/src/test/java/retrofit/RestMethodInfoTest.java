@@ -14,6 +14,8 @@ import org.junit.Test;
 import retrofit.http.BaseUrl;
 import retrofit.http.Body;
 import retrofit.http.DELETE;
+import retrofit.http.EncodedPath;
+import retrofit.http.EncodedQuery;
 import retrofit.http.Field;
 import retrofit.http.FormUrlEncoded;
 import retrofit.http.GET;
@@ -21,6 +23,7 @@ import retrofit.http.HEAD;
 import retrofit.http.Header;
 import retrofit.http.Headers;
 import retrofit.http.Multipart;
+import retrofit.http.PATCH;
 import retrofit.http.POST;
 import retrofit.http.PUT;
 import retrofit.http.Part;
@@ -36,6 +39,8 @@ import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static retrofit.RestMethodInfo.ParamUsage.BASEURL;
 import static retrofit.RestMethodInfo.ParamUsage.BODY;
+import static retrofit.RestMethodInfo.ParamUsage.ENCODED_PATH;
+import static retrofit.RestMethodInfo.ParamUsage.ENCODED_QUERY;
 import static retrofit.RestMethodInfo.ParamUsage.HEADER;
 import static retrofit.RestMethodInfo.ParamUsage.PATH;
 import static retrofit.RestMethodInfo.ParamUsage.QUERY;
@@ -113,7 +118,7 @@ public class RestMethodInfoTest {
 
   @Test public void concreteCallbackTypesWithParams() {
     class Example {
-      @GET("/foo") void a(@Path("id") String id, ResponseCallback cb) {
+      @GET("/foo") void a(@Query("id") String id, ResponseCallback cb) {
       }
     }
 
@@ -137,7 +142,7 @@ public class RestMethodInfoTest {
 
   @Test public void genericCallbackTypesWithParams() {
     class Example {
-      @GET("/foo") void a(@Path("id") String id, Callback<Response> c) {
+      @GET("/foo") void a(@Query("id") String id, Callback<Response> c) {
       }
     }
 
@@ -221,7 +226,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalArgumentException.class)
   public void missingCallbackTypes() {
     class Example {
-      @GET("/foo") void a(@Path("id") String id) {
+      @GET("/foo") void a(@Query("id") String id) {
       }
     }
 
@@ -334,6 +339,22 @@ public class RestMethodInfoTest {
     assertThat(methodInfo.requestUrl).isEqualTo("/foo");
   }
 
+  @Test public void patchMethod() {
+    class Example {
+      @PATCH("/foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.requestMethod).isEqualTo("PATCH");
+    assertThat(methodInfo.requestHasBody).isTrue();
+    assertThat(methodInfo.requestUrl).isEqualTo("/foo");
+  }
+
   @RestMethod("CUSTOM1")
   @Target(METHOD) @Retention(RUNTIME)
   private @interface CUSTOM1 {
@@ -410,6 +431,38 @@ public class RestMethodInfoTest {
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 
+  @Test public void singlePathParam() {
+    class Example {
+      @GET("/{a}") Response a(@Path("a") String a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly("a");
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(PATH);
+    assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
+  }
+
+  @Test public void singleEncodedPathParam() {
+    class Example {
+      @GET("/{a}") Response a(@EncodedPath("a") String a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly("a");
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(ENCODED_PATH);
+    assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
+  }
+
   @Test public void singleQueryParam() {
     class Example {
       @GET("/") Response a(@Query("a") String a) {
@@ -423,6 +476,22 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly("a");
     assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(QUERY);
+    assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
+  }
+
+  @Test public void singleEncodedQueryParam() {
+    class Example {
+      @GET("/") Response a(@EncodedQuery("a") String a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.requestParamNames).hasSize(1).containsExactly("a");
+    assertThat(methodInfo.requestParamUsage).hasSize(1).containsExactly(ENCODED_QUERY);
     assertThat(methodInfo.requestType).isEqualTo(SIMPLE);
   }
 

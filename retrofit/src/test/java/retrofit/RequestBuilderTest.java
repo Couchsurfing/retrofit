@@ -25,6 +25,8 @@ import static org.fest.assertions.api.Assertions.assertThat;
 import static org.fest.assertions.api.Assertions.fail;
 import static retrofit.RestMethodInfo.ParamUsage;
 import static retrofit.RestMethodInfo.ParamUsage.BODY;
+import static retrofit.RestMethodInfo.ParamUsage.ENCODED_PATH;
+import static retrofit.RestMethodInfo.ParamUsage.ENCODED_QUERY;
 import static retrofit.RestMethodInfo.ParamUsage.FIELD;
 import static retrofit.RestMethodInfo.ParamUsage.HEADER;
 import static retrofit.RestMethodInfo.ParamUsage.PART;
@@ -58,6 +60,19 @@ public class RequestBuilderTest {
     assertThat(request.getBody()).isNull();
   }
 
+  @Test public void getWithEncodedPathParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/{ping}/") //
+        .addEncodedPathParam("ping", "po%20ng") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/po%20ng/");
+    assertThat(request.getBody()).isNull();
+  }
+
   @Test public void getWithInterceptorPathParam() throws Exception {
     Request request = new Helper() //
         .setMethod("GET") //
@@ -85,6 +100,62 @@ public class RequestBuilderTest {
     assertThat(request.getBody()).isNull();
   }
 
+  @Test public void getWithInterceptorQueryParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/") //
+        .addInterceptorQueryParam("butter", "finger") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/?butter=finger");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void getWithPathParamAndInterceptorQueryParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/{ping}/") //
+        .addPathParam("ping", "pong") //
+        .addInterceptorQueryParam("butter", "finger")
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/pong/?butter=finger");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void getWithInterceptorPathParamAndInterceptorQueryParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/{ping}/") //
+        .addInterceptorPathParam("ping", "pong") //
+        .addInterceptorQueryParam("butter", "finger") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/pong/?butter=finger");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void getWithPathParamAndInterceptorPathParamAndInterceptorQueryParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/{ping}/{kit}/") //
+        .addPathParam("ping", "pong") //
+        .addInterceptorPathParam("kit", "kat")
+        .addInterceptorQueryParam("butter", "finger")
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/pong/kat/?butter=finger");
+    assertThat(request.getBody()).isNull();
+  }
+
   @Test public void pathParamRequired() throws Exception {
     try {
       new Helper() //
@@ -109,6 +180,19 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("GET");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/?ping=pong");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void getWithEncodedQueryParam() throws Exception {
+    Request request = new Helper() //
+        .setMethod("GET") //
+        .setUrl("http://example.com") //
+        .setPath("/foo/bar/") //
+        .addEncodedQueryParam("ping", "p+o+n+g") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/?ping=p+o+n+g");
     assertThat(request.getBody()).isNull();
   }
 
@@ -309,10 +393,10 @@ public class RequestBuilderTest {
     Iterator<byte[]> iterator = bodyParts.iterator();
 
     String one = new String(iterator.next(), "UTF-8");
-    assertThat(one).contains("ping").contains("pong");
+    assertThat(one).contains("name=\"ping\"\r\n").endsWith("\r\npong");
 
     String two = new String(iterator.next(), "UTF-8");
-    assertThat(two).contains("kit").contains("kat");
+    assertThat(two).contains("name=\"kit\"").endsWith("\r\nkat");
   }
 
   @Test public void multipartNullRemovesPart() throws Exception {
@@ -336,7 +420,7 @@ public class RequestBuilderTest {
     Iterator<byte[]> iterator = bodyParts.iterator();
 
     String one = new String(iterator.next(), "UTF-8");
-    assertThat(one).contains("ping").contains("pong");
+    assertThat(one).contains("name=\"ping\"").endsWith("\r\npong");
   }
 
   @Test public void multipartPartOptional() throws Exception {
@@ -503,6 +587,7 @@ public class RequestBuilderTest {
     private final List<Header> headers = new ArrayList<Header>();
     private final List<Header> interceptorHeaders = new ArrayList<Header>();
     private final Map<String, String> interceptorPathParams = new LinkedHashMap<String, String>();
+    private final Map<String, String> interceptorQueryParams = new LinkedHashMap<String, String>();
     private String url;
 
     Helper setMethod(String method) {
@@ -537,9 +622,23 @@ public class RequestBuilderTest {
       return this;
     }
 
+    Helper addEncodedPathParam(String name, String value) {
+      paramNames.add(name);
+      paramUsages.add(ENCODED_PATH);
+      args.add(value);
+      return this;
+    }
+
     Helper addQueryParam(String name, String value) {
       paramNames.add(name);
       paramUsages.add(QUERY);
+      args.add(value);
+      return this;
+    }
+
+    Helper addEncodedQueryParam(String name, String value) {
+      paramNames.add(name);
+      paramUsages.add(ENCODED_QUERY);
       args.add(value);
       return this;
     }
@@ -587,6 +686,11 @@ public class RequestBuilderTest {
       return this;
     }
 
+    Helper addInterceptorQueryParam(String name, String value) {
+      interceptorQueryParams.put(name, value);
+      return this;
+    }
+
     Helper setMultipart() {
       requestType = RequestType.MULTIPART;
       return this;
@@ -627,6 +731,9 @@ public class RequestBuilderTest {
       }
       for (Map.Entry<String, String> entry : interceptorPathParams.entrySet()) {
         requestBuilder.addPathParam(entry.getKey(), entry.getValue());
+      }
+      for (Map.Entry<String, String> entry : interceptorQueryParams.entrySet()) {
+        requestBuilder.addQueryParam(entry.getKey(), entry.getValue());
       }
 
       requestBuilder.setApiUrl(url);

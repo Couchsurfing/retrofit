@@ -15,6 +15,7 @@
  */
 package retrofit.http;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -23,7 +24,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Named replacement in the URL path. Values are converted to string using
- * {@link String#valueOf(Object)}.
+ * {@link String#valueOf(Object)}. Replaced values will be URL encoded.
  * <p>
  * <pre>
  * &#64;GET("/image/{id}")
@@ -32,7 +33,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * <p>
  * Path parameters may not be {@code null}.
  */
-@Retention(RUNTIME) @Target(PARAMETER)
+@Documented
+@Retention(RUNTIME)
+@Target(PARAMETER)
 public @interface Path {
   String value();
 }
