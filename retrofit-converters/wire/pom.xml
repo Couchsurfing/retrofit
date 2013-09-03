@@ -1,27 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!--
+  ~ Copyright 2013 Square, Inc.
+  -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.couchsurfing.retrofit</groupId>
+    <groupId>com.squareup.retrofit</groupId>
     <artifactId>retrofit-converters</artifactId>
     <version>1.2.1</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>converter-jackson</artifactId>
-  <name>Converter: Jackson</name>
+  <artifactId>converter-wire</artifactId>
+  <name>Converter: Wire Protocol Buffers</name>
 
   <dependencies>
     <dependency>
-      <groupId>com.couchsurfing.retrofit</groupId>
+      <groupId>com.squareup.retrofit</groupId>
       <artifactId>retrofit</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>com.squareup.wire</groupId>
+      <artifactId>wire-runtime</artifactId>
     </dependency>
 
     <dependency>
